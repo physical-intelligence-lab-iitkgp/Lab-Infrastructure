@@ -20,3 +20,15 @@ Documentation, sanity checks, PyTorch test submission code, and Slurm job templa
 
 ## Cluster Notes to Update
 - Replace `<cluster-login-host>`, `--partition=...`, `--gres=...`, and environment activation lines with your cluster's exact details.
+- ## Repository Structure
+
+### Active Modules
+* **[`cluster_access/`](./cluster_access/)**: Documentation, environment sanity checks, PyTorch GPU/CPU smoke tests, and Slurm job templates for running workloads on the compute cluster (including PARAM Shakti).
+
+### Planned Modules
+* `3d_printers/` *(planned)*: Calibration profiles, slicing presets, and maintenance logs for lab 3D printers.
+* `robots/` *(planned)*: Hardware setup guides, ROS/middleware configurations, and safety checklists for robotic platforms.
+* `other_clusters/` *(planned)*: Job submission templates and environment guides for additional institute and national compute clusters.
+
+## Maintainer
+* **Sukanya Saha** ([@sukuberger](https://github.com/sukuberger)) — Repository Maintainer
