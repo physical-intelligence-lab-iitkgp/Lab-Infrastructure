@@ -1,35 +1,43 @@
+
 #!/usr/bin/env bash
 #SBATCH --job-name=pytorch-smoke-test
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
-#SBATCH --partition=gpu              # Replace with your cluster's GPU partition name
+#SBATCH --partition=gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --gres=gpu:1                 # Adjust or remove if testing on CPU partition
+#SBATCH --gres=gpu:1
 #SBATCH --mem=16G
 #SBATCH --time=00:15:00
 
 set -euo pipefail
 
-# Resolve cluster_access root whether submitted from cluster_access/ or slurm_scripts/
+# Locate project directories
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLUSTER_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-mkdir -p "${CLUSTER_DIR}/logs"
 
-echo "Job ID: ${SLURM_JOB_ID:-local} | Node: $(hostname)"
-date
+cd "$CLUSTER_DIR"
 
-# --- Environment Setup (uncomment & adjust to match your cluster) ---
-# module purge
-# module load cuda/12.1 python/3.10
-# source ~/miniconda3/etc/profile.d/conda.sh
-# conda activate pytorch_env
+# Load PARAM Shakti modules
+module purge
+module load compiler/cuda/12.4
+module load custom/python/3.10.13-custom
 
-python3 --version
-python3 -c "import torch; print('CUDA available:', torch.cuda.is_available())"
+# Activate Python environment
+unset PYTHONPATH
+source /scratch/scratch26/26at91r15/GPT2_Project/environment/gpt2_env/bin/activate
 
-srun python3 "${CLUSTER_DIR}/pytorch_submission/test_pytorch.py"
+echo "Job ID: ${SLURM_JOB_ID:-local}"
+echo "Compute node: $(hostname)"
+echo "Python version:"
+python --version
 
-echo "Finished at:"
+# Verify PyTorch and CUDA
+python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'Not available')"
+
+# Run PyTorch test
+srun python "${CLUSTER_DIR}/pytorch_submission/test_pytorch.py"
+
+echo "Job finished:"
 date
