@@ -1,8 +1,7 @@
-
 #!/usr/bin/env bash
-#SBATCH --job-name=pytorch-smoke-test
-#SBATCH --output=logs/%x-%j.out
-#SBATCH --error=logs/%x-%j.err
+#SBATCH --job-name=pytorch-gpu-test
+#SBATCH --output=/scratch/scratch26/26at91r15/GPT2_Project/logs/%x-%j.out
+#SBATCH --error=/scratch/scratch26/26at91r15/GPT2_Project/logs/%x-%j.err
 #SBATCH --partition=gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -13,31 +12,42 @@
 
 set -euo pipefail
 
-# Locate project directories
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLUSTER_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# Project directory
+PROJECT_DIR="/scratch/scratch26/26at91r15/GPT2_Project"
 
-cd "$CLUSTER_DIR"
+# Test program directory
+CLUSTER_DIR="/scratch/scratch26/26at91r15/Lab-Infrastructure/cluster_access"
 
-# Load PARAM Shakti modules
+# Display job information
+echo "Job ID: ${SLURM_JOB_ID}"
+echo "Compute node: $(hostname)"
+echo "Project directory: ${PROJECT_DIR}"
+date
+
+# Move to project directory
+cd "${PROJECT_DIR}"
+
+# Load CUDA
 module purge
 module load compiler/cuda/12.4
-module load custom/python/3.10.13-custom
 
-# Activate Python environment
+# Activate existing Conda environment
+source /home/apps/anaconda3/etc/profile.d/conda.sh
 unset PYTHONPATH
-source /scratch/scratch26/26at91r15/GPT2_Project/environment/gpt2_env/bin/activate
+conda activate /home/26at91r15/.conda/envs/torchenv
 
-echo "Job ID: ${SLURM_JOB_ID:-local}"
-echo "Compute node: $(hostname)"
-echo "Python version:"
+# Configure CPU threads
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
+
+# Verify software
 python --version
+python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA build:', torch.version.cuda)"
 
-# Verify PyTorch and CUDA
-python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available()); print('GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'Not available')"
+# Require GPU availability
+python -c "import torch; assert torch.cuda.is_available(), 'CUDA GPU is not available'; print('GPU:', torch.cuda.get_device_name(0))"
 
 # Run PyTorch test
-srun python "${CLUSTER_DIR}/pytorch_submission/test_pytorch.py"
+srun --ntasks=1 python "${CLUSTER_DIR}/pytorch_submission/test_pytorch.py"
 
-echo "Job finished:"
+echo "PyTorch GPU test completed successfully."
 date
